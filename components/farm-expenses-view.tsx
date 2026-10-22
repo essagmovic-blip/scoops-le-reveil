@@ -1,0 +1,43 @@
+'use client';
+
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, Check, Download, MoreHorizontal, Pencil, Plus, WalletCards } from 'lucide-react';
+import { formatDate, formatFCFA } from '@/lib/format';
+import { Modal, SectionHeading, StatCard } from '@/components/ui';
+import { DateRangePicker } from '@/components/date-range-picker';
+import { FARM_STORAGE_KEYS, readLocal, writeLocal } from '@/lib/farm-storage';
+
+type FarmExpense = { id: string; date: string; label: string; category: string; amount: number; method: string; batch: string };
+function inRange(date: string, from: string, to: string) { return date >= from && date <= to; }
+
+export function FarmExpensesView() {
+  const [expenses, setExpenses] = useState<FarmExpense[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [from, setFrom] = useState('2026-08-01');
+  const [to, setTo] = useState('2026-08-13');
+  const [open, setOpen] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    const load = () => {
+      setExpenses(readLocal(FARM_STORAGE_KEYS.expenses, [] as FarmExpense[]));
+      setCategories(readLocal(FARM_STORAGE_KEYS.expenseCategories, [] as string[]));
+      setHydrated(true);
+    };
+    load();
+  }, []);
+  useEffect(() => { if (hydrated) writeLocal(FARM_STORAGE_KEYS.expenses, expenses); }, [expenses, hydrated]);
+  useEffect(() => { if (hydrated) writeLocal(FARM_STORAGE_KEYS.expenseCategories, categories); }, [categories, hydrated]);
+  const visible = useMemo(() => expenses.filter((expense) => inRange(expense.date, from, to)), [expenses, from, to]);
+  const total = visible.reduce((sum, expense) => sum + expense.amount, 0);
+  const periodLabel = `${from.split('-').reverse().join('/')} — ${to.split('-').reverse().join('/')}`;
+
+  function notify(message: string) { setFeedback(message); window.setTimeout(() => setFeedback(''), 3500); }
+  function addCategory() { const value = window.prompt('Nom de la nouvelle catégorie'); if (value?.trim() && !categories.includes(value.trim())) { setCategories((current) => [...current, value.trim()]); notify(`Catégorie « ${value.trim()} » ajoutée.`); } }
+  function editCategory(category: string) { const value = window.prompt('Modifier la catégorie', category); if (value?.trim()) { setCategories((current) => current.map((item) => item === category ? value.trim() : item)); notify(`Catégorie « ${category} » modifiée.`); } }
+  function saveExpense(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const form = new FormData(event.currentTarget); const expense: FarmExpense = { id: `DEP-F-${String(Date.now()).slice(-3)}`, date: String(form.get('date') ?? '2026-08-13'), label: String(form.get('label') ?? 'Dépense ferme'), category: String(form.get('category') ?? 'Autre'), amount: Number(form.get('amount') ?? 0), method: String(form.get('method') ?? 'Espèces'), batch: String(form.get('batch') ?? 'Ferme') }; setExpenses((current) => [expense, ...current]); setOpen(false); notify('La nouvelle dépense a été enregistrée dans le journal de la ferme.'); }
+  function exportExpenses() { const csv = ['SCOOPS LE REVEIL', 'Dépenses de la ferme', `Période : ${from} — ${to}`, '', 'Référence;Date;Libellé;Catégorie;Bande/zone;Mode;Montant', ...visible.map((expense) => [expense.id, expense.date, expense.label, expense.category, expense.batch, expense.method, expense.amount].map((value) => `"${String(value).replaceAll('"', '""')}"`).join(';'))].join('\n'); const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' })); link.download = `depenses-ferme-${from}-${to}.csv`; link.click(); notify('Le journal des dépenses a été exporté.'); }
+
+  return <div className="fade-in space-y-7"><div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"><div><Link href="/dashboard/poulets" className="mb-4 inline-flex items-center gap-2 text-[11px] font-bold text-[#6c8176] hover:text-forest"><ArrowLeft size={14} /> Retour au dashboard ferme</Link><p className="eyebrow mb-2">Ferme · Finance</p><h1 className="page-title">Dépenses de la ferme</h1><p className="muted mt-2 text-[13px]">Les charges affichées ici sont uniquement celles rattachées à l’unité poulets.</p></div><div className="flex flex-wrap gap-2"><DateRangePicker from={from} to={to} onApply={(nextFrom, nextTo) => { setFrom(nextFrom); setTo(nextTo); }} /><button className="btn-secondary" onClick={exportExpenses}><Download size={15} /> Exporter</button><button className="btn-primary" onClick={() => setOpen(true)}><Plus size={16} /> Nouvelle dépense</button></div></div>{feedback && <div className="flex items-center gap-2 rounded-xl border border-[#cde8c7] bg-[#effaeb] px-4 py-3 text-[12px] font-semibold text-[#4d8f51]"><Check size={14} />{feedback}</div>}<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatCard label={`Dépenses · ${periodLabel}`} value={total} change={`${visible.length} écritures`} detail="unité ferme" icon={WalletCards} tone="orange" /><StatCard label="Vétérinaire" value={visible.filter((e) => e.category === 'Vétérinaire').reduce((s, e) => s + e.amount, 0)} change="Suivi" detail="du total" icon={WalletCards} tone="green" /><StatCard label="Maintenance" value={visible.filter((e) => e.category === 'Maintenance').reduce((s, e) => s + e.amount, 0)} change="Suivi" detail="du total" icon={WalletCards} tone="blue" /><StatCard label="Autres charges" value={visible.filter((e) => !['Vétérinaire', 'Maintenance'].includes(e.category)).reduce((s, e) => s + e.amount, 0)} change="Suivi" detail="du total" icon={WalletCards} tone="purple" /></div><div className="surface overflow-hidden"><div className="flex items-center justify-between border-b border-[#edf0eb] px-5 py-5 sm:px-6"><SectionHeading eyebrow="Journal ferme" title="Dépenses de la période" /><button className="icon-btn h-8 w-8"><MoreHorizontal size={15} /></button></div><div className="table-scroll"><table className="w-full text-left"><thead><tr className="table-head"><th>Référence</th><th>Date</th><th>Libellé</th><th>Catégorie</th><th>Bande / zone</th><th>Montant</th><th>Mode</th></tr></thead><tbody>{visible.map((expense) => <tr className="table-row table-line" key={expense.id}><td className="font-bold text-ink">{expense.id}</td><td>{formatDate(expense.date)}</td><td>{expense.label}</td><td>{expense.category}</td><td>{expense.batch}</td><td className="font-bold text-ink">{formatFCFA(expense.amount)}</td><td><span className="rounded-full bg-[#f1f5ef] px-2 py-1 text-[10px] font-bold text-[#66766d]">{expense.method}</span></td></tr>)}</tbody></table></div></div><Modal open={open} onClose={() => setOpen(false)} title="Nouvelle dépense ferme"><form onSubmit={saveExpense} className="space-y-4"><label className="block"><span className="field-label">Libellé</span><input name="label" className="input-base" placeholder="Ex. Vaccins et traitements" required /></label><div className="grid gap-4 sm:grid-cols-2"><label className="block"><span className="field-label">Montant</span><input name="amount" type="number" min="1" className="input-base" placeholder="0" required /></label><label className="block"><span className="field-label">Date</span><input name="date" type="date" defaultValue="2026-08-13" className="input-base" /></label></div><div className="grid gap-4 sm:grid-cols-2"><label className="block"><span className="field-label">Catégorie</span><div className="flex gap-2"><select name="category" className="input-base">{categories.map((category) => <option key={category}>{category}</option>)}</select><button type="button" className="icon-btn h-10 w-10 shrink-0" onClick={addCategory} aria-label="Ajouter une catégorie"><Plus size={14} /></button><button type="button" className="icon-btn h-10 w-10 shrink-0" onClick={() => editCategory(String(categories[0]))} aria-label="Modifier une catégorie"><Pencil size={14} /></button></div></label><label className="block"><span className="field-label">Mode de paiement</span><select name="method" className="input-base"><option>Espèces</option><option>Mobile Money</option><option>Virement bancaire</option></select></label></div><label className="block"><span className="field-label">Bâtiment / bande</span><input name="batch" className="input-base" placeholder="Facultatif" /></label><div className="flex justify-end gap-2"><button type="button" className="btn-secondary" onClick={() => setOpen(false)}>Annuler</button><button className="btn-primary" type="submit"><Check size={15} /> Enregistrer</button></div></form></Modal></div>;
+}

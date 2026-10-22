@@ -1,0 +1,51 @@
+import { FARM_STORAGE_KEYS } from '@/lib/farm-storage';
+
+export type ProductionUnitKind = 'provenderie' | 'bio' | 'pressoir';
+
+export const PRODUCTION_UNIT_CONFIG = {
+  provenderie: {
+    id: 'provenderie' as const,
+    name: 'Provenderie',
+    eyebrow: 'Unité · Provenderie',
+    description: 'Gérez les recettes, matières premières, fabrications et transferts d’aliments de SCOOPS LE REVEIL.',
+    materialsTitle: 'Matières premières',
+    materialsDescription: 'Stock, seuils et prix d’achat propres à la provenderie.',
+    finishedTitle: 'Stock aliments finis',
+    recipeTitle: 'Recettes',
+    stages: ['Démarrage', 'Croissance', 'Finition'],
+    forms: ['Granulé', 'Poudre'],
+    targets: ['Poulets de chair', 'Porcs', 'Caprins', 'Autre élevage'],
+    materialPlaceholder: 'Ex. Maïs grain',
+    storage: { recipes: FARM_STORAGE_KEYS.feedRecipes, materials: FARM_STORAGE_KEYS.feedMaterials, productions: FARM_STORAGE_KEYS.feedProductions, finishedStock: FARM_STORAGE_KEYS.feedFinishedStock, movements: FARM_STORAGE_KEYS.feedMovements },
+  },
+  bio: {
+    id: 'bio' as const,
+    name: 'Produits bio',
+    eyebrow: 'Unité · Produits bio',
+    description: 'Transformez les plantes et matières naturelles en préparations bio traçables pour les élevages.',
+    materialsTitle: 'Plantes et matières naturelles',
+    materialsDescription: 'Stock, seuils et prix d’achat des plantes utilisées pour les préparations bio.',
+    finishedTitle: 'Stock produits bio',
+    recipeTitle: 'Préparations bio',
+    stages: ['Préparation', 'Fermentation', 'Conditionnement'],
+    forms: ['Poudre', 'Liquide', 'Granulé'],
+    targets: ['Ferme de poulets', 'Chèvrerie', 'Litière et biosécurité', 'Client externe'],
+    materialPlaceholder: 'Ex. Moringa, curcuma ou ail',
+    storage: { recipes: FARM_STORAGE_KEYS.bioRecipes, materials: FARM_STORAGE_KEYS.bioMaterials, productions: FARM_STORAGE_KEYS.bioProductions, finishedStock: FARM_STORAGE_KEYS.bioFinishedStock, movements: FARM_STORAGE_KEYS.bioMovements },
+  },
+  pressoir: {
+    id: 'pressoir' as const,
+    name: 'Pressoir à huile',
+    eyebrow: 'Unité · Pressoir à huile',
+    description: 'Gérez les matières à presser, les lots, l’huile, les tourteaux, les rendements et les transferts.',
+    materialsTitle: 'Graines et matières à presser',
+    materialsDescription: 'Stock, seuils et prix d’achat des graines destinées au pressage.',
+    finishedTitle: 'Stock huile et tourteaux',
+    recipeTitle: 'Recettes de pressage',
+    stages: ['Pressage', 'Filtration', 'Conditionnement'],
+    forms: ['Huile', 'Tourteaux', 'Solide'],
+    targets: ['Huile de soja', 'Huile d’arachide', 'Huile de coton', 'Huile de tournesol', 'Tourteaux', 'Autre produit'],
+    materialPlaceholder: 'Ex. Graines de soja ou arachide',
+    storage: { recipes: FARM_STORAGE_KEYS.pressRecipes, materials: FARM_STORAGE_KEYS.pressMaterials, productions: FARM_STORAGE_KEYS.pressProductions, finishedStock: FARM_STORAGE_KEYS.pressFinishedStock, movements: FARM_STORAGE_KEYS.pressMovements },
+  },
+} as const;
