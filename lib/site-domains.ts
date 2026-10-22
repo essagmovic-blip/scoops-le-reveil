@@ -14,12 +14,24 @@ function hostList(value: string | undefined, fallback: string[]) {
   return list.length ? list : fallback;
 }
 
-const PUBLIC_HOSTS = hostList(process.env.PUBLIC_SITE_HOSTS, ['scoopslereveil.com', 'www.scoopslereveil.com', 'localhost', '127.0.0.1']);
-const APP_HOSTS = hostList(process.env.APP_SITE_HOSTS, ['scoopslereveil.app', 'www.scoopslereveil.app', 'agroflux.localhost']);
+const PUBLIC_HOSTS = hostList(process.env.PUBLIC_SITE_HOSTS, [
+  'scoopslereveil.com',
+  'www.scoopslereveil.com',
+  'scoops-le-reveil.vercel.app',
+  'localhost',
+  '127.0.0.1',
+]);
+const APP_HOSTS = hostList(process.env.APP_SITE_HOSTS, [
+  'scoopslereveil.app',
+  'www.scoopslereveil.app',
+  'agroflux.localhost',
+  'agroflux-reveil.vercel.app',
+  'agroflux-scoops.vercel.app',
+]);
 
 export function resolveSiteKind(hostHeader: string | null): SiteKind {
   const host = (hostHeader ?? '').toLowerCase().split(':')[0];
-  if (APP_HOSTS.includes(host)) return 'app';
+  if (APP_HOSTS.includes(host) || host.startsWith('agroflux-') || host.startsWith('agroflux.')) return 'app';
   if (PUBLIC_HOSTS.includes(host)) return 'public';
   return 'any';
 }
